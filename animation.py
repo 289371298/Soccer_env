@@ -49,7 +49,6 @@ class Animation():
 
         # To save the animation, use e.g.
         #
-        # ani.save("movie.mp4")
         #
         # or
         #
@@ -58,6 +57,7 @@ class Animation():
         # ani.save("movie.mp4", writer=writer)
 
         plt.show()
+        #ani.save("movie.mp4")
 
 def test():
 
