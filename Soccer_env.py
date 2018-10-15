@@ -1,15 +1,8 @@
 import numpy as np
 from copy import deepcopy
 from animation import Animation
-
-def rand():
-
-    return np.random.random_sample()
-
-def add(a, t, b):
-
-    for i in range(len(a)):
-        a[i] += t * b[i]
+from Agent import *
+from utils import *
 
 
 class simple_soccer_env():
@@ -58,8 +51,12 @@ class simple_soccer_env():
                 'limit_r':self.r_touch,
                 'Max_v_agent':self.Mv,
                 'Max_v_ball':self.Mvb,
-                'color':self.color
+                'Mv':self.Mv,
+                'color':self.color,
+                'n':self.n
                 }
+
+        return dict
 
     def __init__(self, color):
 
@@ -72,6 +69,7 @@ class simple_soccer_env():
         self.dt = 1.
         self.alpha = 0.1 # 阻尼系数
         self.Mv = 3.0
+        self.Mv_wb = 2.9
         self.Mvb = 20.0
 
         self.panalty_agent_go_outside = 0.0
@@ -231,9 +229,11 @@ class simple_soccer_env():
 
     def get_action(self, id, action): # action的格式为[v = [R,R], shoot_or_not = Bool, v_ball = [R,R]] 如果shoot_or_not = False, v_ball不存在或无效
 
+        temp = self.Mv 
+        if self.id_ball_belongs_to == id:temp = self.Mv_wb # 带球的agent运动更慢
         length_v_agent = np.sqrt(action[0][0] ** 2 + action[0][1] ** 2)
-        action[0][0] /= max(self.Mv, length_v_agent) / self.Mv
-        action[0][1] /= max(self.Mv, length_v_agent) / self.Mv
+        action[0][0] /= max(temp, length_v_agent) / temp
+        action[0][1] /= max(temp, length_v_agent) / temp
 
         length_v_ball  = np.sqrt(action[3][0] ** 2 + action[3][1] ** 2)
         action[3][0] /= max(self.Mvb, length_v_agent) / self.Mvb
@@ -260,11 +260,11 @@ class simple_soccer_env():
 
         other_state = []
         for i in range(self.n):
-            if i != id:
-                i_state = {'pos_agent':self.pos_agent[i],
-                          'v_agent':self.v_agent[i],
-                          'control_ball':self.c[i],}
-                other_state.append([i,i_state])
+            #if i != id: #change here
+            i_state = {'pos_agent':self.pos_agent[i],
+                        'v_agent':self.v_agent[i],
+                        'control_ball':self.c[i],}
+            other_state.append([i,i_state])
 
         state = {'self_state':self_state,
                  'ball_state':ball_state,
@@ -280,40 +280,17 @@ class simple_soccer_env():
         #一个人所接收到的state是自身位置，速度，是否可控球，球的位置，速度，以及其他agent传输的信息
         return [state, reward, self.done, None]
 
-class Agent_naive:
-
-    def __init__(self):
-
-        self.pos_ball, self.pos_agent = 0,0
-
-    def get_observation(self, obs):
-
-        self.pos_ball =  np.array(obs[0]['ball_state']['pos_ball'])
-        self.pos_agent = np.array(obs[0]['self_state']['pos_agent'])
-        pass
-
-    def return_action(self):
-        
-        return [(self.pos_ball - self.pos_agent)/10+rand()-0.5,
-               True,
-               rand() < 0.1,
-              [(rand()-0.5) * 10,(rand()-0.5) * 10]]
-
-    def send_message(self, id_to):
-
-        return None
-
-
-
 def test():
     
     n = 4;
-    agents = [Agent_naive() for i in range(n)] 
+    env = simple_soccer_env([0,0,1,1])     #定义环境的时候传入一个n元数组表示每一个agent的阵营
+    env.reset()
+
+    agents = [Agent_heuristic(env.get_info(), i) for i in range(n)] 
     #最愚蠢的agent，向足球靠近，然后尽可能抢断，之后有10%的概率朝随便方向踢出去
     #只是用来表示agent需要做什么
 
-    env = simple_soccer_env([0,0,1,1])     #定义环境的时候传入一个n元数组表示每一个agent的阵营
-    env.reset()
+    
 
     t0s, t1s, bs = [], [], []
     t0, t1, b, vb = env.return_env_state()# 这些变量用来记录env信息做可视化，当一局完全结束后，比赛才可变为视频
