@@ -17,12 +17,15 @@ class simple_soccer_env():
     def calc_p_of_steal(self, id):
 
         r = self.get_dis_with_ball(id)
+        orth_point = get_orth_point(self.pos_ball, self.pos_ball+np.array(self.v_ball), self.pos_agent[id])
+        if middle(self.pos_ball, self.pos_ball+np.array(self.v_ball),orth_point):
+            r = get_dis(orth_point, self.pos_agent[id])
         if r > self.r_touch:return 0
-        return 0.1
+        #return 0.1
         if self.id_ball_belongs_to == -1 and r <= self.r_touch:
             return 1
         if r <= self.r_touch:
-            return 0.5 + (self.r_touch-r)*0.5 # 现在很大
+            return 0.5 + (self.r_touch-r) / self.r_touch * 0.5 # 现在很大
         else: return 0
 
     def outside(self, a):
@@ -66,17 +69,17 @@ class simple_soccer_env():
         self.n = len(color)
         self.color = color #array of teams' colors agents belong to
 
-        self.dt = 1.
-        self.alpha = 0.1 # 阻尼系数
+        self.dt = 0.1
+        self.alpha = 0.08 # 阻尼系数
         self.Mv = 3.0
         self.Mv_wb = 2.9
-        self.Mvb = 20.0
+        self.Mvb = 10.0
 
         self.panalty_agent_go_outside = 0.0
         self.panalty_ball_go_outside = 0.0
         self.reward_control = 1.0
         self.reward_goal = 10.0
-        self.r_touch = 5. #radius of the range that the ball can be touched
+        self.r_touch = 2. #radius of the range that the ball can be touched
 
         self.pos_agent = []
         self.v_agent = []
@@ -282,6 +285,7 @@ class simple_soccer_env():
 
 def test():
     
+    np.random.seed(233)
     n = 4;
     env = simple_soccer_env([0,0,1,1])     #定义环境的时候传入一个n元数组表示每一个agent的阵营
     env.reset()
@@ -299,7 +303,7 @@ def test():
     t1s.append(deepcopy(t1))
     bs.append(deepcopy(b))
 #   print(t0,t1,b,vb)
-    while env.done == False and env.step_ <= 100: # 默认最多演算100步，若射门(done = True)则提前退出
+    while env.done == False and env.step_ <= 300: # 默认最多演算100步，若射门(done = True)则提前退出
 #       print(env.step_)
 #       print('       ',env.id_ball_belongs_to)
         for i in range(n):
